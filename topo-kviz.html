@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <title>Topografski znaki - Kviz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+    }
+    .quiz-item {
+      margin-bottom: 40px;
+    }
+    .quiz-item img {
+      width: 200px;
+      height: auto;
+      margin-bottom: 10px;
+    }
+    button {
+      display: block;
+      margin: 5px 0;
+      padding: 10px;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    .correct {
+      background-color: #c8e6c9;
+    }
+    .wrong {
+      background-color: #ffcdd2;
+    }
+    #score {
+      font-size: 1.2em;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kviz: Prepoznaj topografski znak</h1>
+
+  <label for="mode">Izberi stopnjo:</label>
+  <select id="mode">
+    <option value="pionirji">Pionirji (15 znakov)</option>
+    <option value="mladinci">Mladinci (30 znakov)</option>
+  </select>
+  <button onclick="startQuiz()">Začni kviz</button>
+
+  <div id="quiz"></div>
+  <div id="score"></div>
+  <script>
+    const allSigns = [
+      {id: 1, correct: "Zgradba", options: ["Kapela", "Zgradba", "Baraka", "Grad"]},
+      {id: 2, correct: "Stan, koliba", options: ["Stan, koliba", "kozolec", "Kapela", "Gozd"]},
+      {id: 3, correct: "Cerkev z enim zvonikom", options: ["Spomenik", "Cerkev z enim zvonikom", "Kapela", "Razgledni stolp"]},
+      {id: 4, correct: "Kapela", options: ["Kapela", "Cerkev z enim zvonikom", "Gozd", "Vrtača"]},
+      {id: 5, correct: "Grad", options: ["Grad", "Baraka", "Razgledni stolp", "Zgradba"]},
+      {id: 6, correct: "Daljnovod", options: ["Daljnovod", "Potok", "Ozka steza", "Utrjena cesta"]},
+      {id: 7, correct: "Razgledni stolp", options: ["Razgledni stolp", "Grad", "Cerkev", "kozolec"]},
+      {id: 8, correct: "Spomenik", options: ["Spomenik", "Vrtača", "Kapela", "Potok"]},
+      {id: 9, correct: "kozolec", options: ["kozolec", "Stan", "Grad", "Utrjena cesta"]},
+      {id: 10, correct: "Kolovoz", options: ["Kolovoz", "Ozka steza", "Utrjena cesta", "Daljnovod"]},
+      {id: 11, correct: "Ozka steza, pešpot", options: ["Ozka steza, pešpot", "Kolovoz", "Utrjena cesta", "Potok"]},
+      {id: 12, correct: "Utrjena cesta", options: ["Utrjena cesta", "Kolovoz", "Daljnovod", "Grad"]},
+      {id: 13, correct: "Vrtača", options: ["Vrtača", "Spomenik", "Kapela", "Razgledni stolp"]},
+      {id: 14, correct: "Potok občasno brez vode, hudournik", options: ["Potok občasno brez vode, hudournik", "Kolovoz", "Vrtača", "Utrjena cesta"]},
+      {id: 15, correct: "Gozd", options: ["Gozd", "Baraka", "Zgradba", "Stan"]},
+      {id: 16, correct: "Baraka", options: ["Baraka", "kozolec", "Gozd", "Zgradba"]},
+      {id: 17, correct: "Cerkev z dvema ali več zvoniki", options: ["Cerkev z dvema ali več zvoniki", "Kapela", "Razgledni stolp", "Grad"]},
+      {id: 18, correct: "Pokopališče", options: ["Pokopališče", "Gozd", "Spomenik", "Cerkev"]},
+      {id: 19, correct: "Kamnolom", options: ["Kamnolom", "Kolovoz", "Kapela", "Zgradba"]},
+      {id: 20, correct: "Versko znamenje", options: ["Versko znamenje", "Cerkev", "Kapela", "Spomenik"]},
+      {id: 21, correct: "Enotirna elektrificirana železniška proga", options: ["Enotirna elektrificirana železniška proga", "Potok", "Cesta", "Daljnovod"]},
+      {id: 22, correct: "Sedlo/prelaz", options: ["Sedlo/prelaz", "Vrtača", "Kamnolom", "Ozka steza"]},
+      {id: 23, correct: "Osnovna plastnica (izohipsa)", options: ["Osnovna plastnica (izohipsa)", "Hudournik", "Kapela", "Kolovoz"]},
+      {id: 24, correct: "Glavna/poudarjena plastnica (izohipsa)", options: ["Glavna/poudarjena plastnica (izohipsa)", "Osnovna plastnica", "Kolovoz", "Razgledni stolp"]},
+      {id: 25, correct: "Kota", options: ["Kota", "Zgradba", "Baraka", "Grad"]},
+      {id: 26, correct: "Podzemna jama brez vode", options: ["Podzemna jama brez vode", "Kamnolom", "kozolec", "Potok"]},
+      {id: 27, correct: "Reka ali potok ožja od 5 m", options: ["Reka ali potok ožja od 5 m", "Hudournik", "Daljnovod", "Utrjena cesta"]},
+      {id: 28, correct: "Jezero, mlaka", options: ["Jezero, mlaka", "Vrtača", "Kapela", "Razgledni stolp"]},
+      {id: 29, correct: "Močnejši izvir", options: ["Močnejši izvir", "Reka", "Kapela", "Cerkev"]},
+      {id: 30, correct: "Prehodno močvirje s trstičjem", options: ["Prehodno močvirje s trstičjem", "Jezero", "Potok", "Hudournik"]},
+    ];
+
+    function startQuiz() {
+      const mode = document.getElementById("mode").value;
+      const signs = mode === "pionirji" ? allSigns.slice(0, 15) : allSigns;
+
+      document.getElementById("quiz").innerHTML = "";
+      document.getElementById("score").textContent = "";
+
+      let score = 0;
+      let answered = 0;
+      const quizDiv = document.getElementById("quiz");
+      const shuffledQuestions = [...signs].sort(() => Math.random() - 0.5);
+
+      shuffledQuestions.forEach(({id, correct, options}, i) => {
+        const shuffled = [...options].sort(() => Math.random() - 0.5);
+        const div = document.createElement("div");
+        div.className = "quiz-item";
+
+        const img = document.createElement("img");
+        img.src = `images/sign_${id}.png`;
+        img.alt = `Znak ${id}`;
+
+        div.appendChild(document.createTextNode(`${i + 1}.`));
+        div.appendChild(document.createElement("br"));
+        div.appendChild(img);
+
+        shuffled.forEach(opt => {
+          const btn = document.createElement("button");
+          btn.textContent = opt;
+          btn.onclick = () => {
+            if (opt === correct) {
+              btn.classList.add("correct");
+              score++;
+            } else {
+              btn.classList.add("wrong");
+            }
+            answered++;
+            btn.disabled = true;
+            [...btn.parentNode.querySelectorAll("button")].forEach(b => b.disabled = true);
+
+            if (answered === signs.length) {
+              document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
+            }
+          };
+          div.appendChild(btn);
+        });
+        quizDiv.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
