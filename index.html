@@ -139,23 +139,16 @@
               }
             } else {
               btn.classList.add("wrong");
-              answered++;
               btn.disabled = true;
               [...btn.parentNode.querySelectorAll("button")].forEach(b => b.disabled = true);
               setTimeout(() => {
                 const correctBtn = [...btn.parentNode.querySelectorAll("button")].find(b => b.textContent === correct);
                 if (correctBtn) correctBtn.classList.add("correct");
+                answered++;
                 if (answered === signs.length) {
                   document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
                 }
               }, 5000);
-            }
-            answered++;
-            btn.disabled = true;
-            [...btn.parentNode.querySelectorAll("button")].forEach(b => b.disabled = true);
-
-            if (answered === signs.length) {
-              document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
             }
           };
           div.appendChild(btn);
