@@ -2,30 +2,33 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Topografski Znaki - Kviz</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       max-width: 900px;
       margin: auto;
-      padding: 20px;
+      padding: 1rem;
+      font-size: 1rem;
     }
     .quiz-item {
       margin-bottom: 40px;
     }
     .quiz-item img {
-      width: 200px;
+      max-width: 100%;
       height: auto;
       margin-bottom: 10px;
     }
     button {
       display: block;
       margin: 5px 0;
-      padding: 10px;
+      padding: 12px;
       width: 100%;
       text-align: left;
       cursor: pointer;
-      font-size: 1em;
+      font-size: 1rem;
+      box-sizing: border-box;
     }
     .correct {
       background-color: #c8e6c9;
@@ -38,6 +41,14 @@
       font-weight: bold;
       margin-top: 20px;
     }
+  @media (max-width: 600px) {
+    body {
+      font-size: 1.1rem;
+    }
+    button {
+      font-size: 1.1rem;
+    }
+  }
   </style>
 </head>
 <body>
