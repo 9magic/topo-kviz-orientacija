@@ -52,20 +52,41 @@
   </style>
 </head>
 <body>
-  <h1>Kviz: Prepoznaj topografski znak</h1>
+    <h1>Kviz: Prepoznaj topografski znak</h1>
 
-  <label for="mode">Izberi stopnjo:</label>
-  <select id="mode">
-    <option value="pionirji">Pionirji/ke (25 znakov)</option>
-    <option value="mladinci">Mladinci/ke (50 znakov)</option>
-    <option value="pripravniki">Gasilski pripravniki/ce (70 znakov)</option>
-  </select>
-  <button onclick="startQuiz()">Začni kviz</button>
-
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+        <label for="mode" style="display: flex; align-items: center; gap: 0.5rem;">Izberi stopnjo:
+          <select id="mode">
+            <option value="pionirji">Pionirji/ke (25 znakov)</option>
+            <option value="mladinci">Mladinci/ke (50 znakov)</option>
+            <option value="pripravniki">Gasilski pripravniki/ce (70 znakov)</option>
+          </select>
+        </label>
+        <label for="input-mode" style="display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">Vpisovanje imen:
+            <select id="input-mode">
+            <option value="no">Ne</option>
+            <option value="yes">Da</option>
+          </select>
+          <button onclick="toggleInfo('input-info')" style="border:none; background:none; font-size:1.2rem; cursor:pointer; padding: 0;">ℹ️</button>
+        </label>
+      </div>
+      <div id="input-info" style="display:none; font-size:0.95rem; color:#333; margin-bottom:1rem;">
+        Če izbereš "Da", se vsako 5. vprašanje pri mladincih/pripravnikih prikaže kot vnosno polje za vpis odgovora namesto izbire.
+        Kakšna zapletena imena je skoraj nemogoče ponoviti. Če jih kdaj stran prepozna kot napačna, je to ker ni tako pametna kot ti in tudi sodniki na tekmovanju.
+        Ne se sekirat, tu si, da treniraš možgane.
+      </div>
+  
+    <button onclick="startQuiz()">Začni kviz</button>
+  
   <div id="quiz"></div>
   <div id="score"></div>
 
   <script>
+    function toggleInfo(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
     const categories = {
       "Zgradbe": ["Zgradba", "Stan, koliba", "Cerkev z enim zvonikom", "Kapela", "Grad", "Baraka", "Samostan", "Skupina zgradb", "Tovarniška dvorana, skladišče, hangar", "Cerkev z dvema ali več zvoniki", "Razgledni stolp"],
       "Linijske oblike": ["Daljnovod", "Slabši kolovoz", "Osnovna plastnica (izohipsa)", "Kolovoz", "Ozka steza, pešpot", "Utrjena cesta", "Enotirna železniška proga", "Dvotirna železniška proga", "Enotirna elektrificirana železniška proga", "Avtocesta", "Žičnica, vzpenjača", "Padnice na plastnici", "Serpentine", "Cesta v useku"],
@@ -104,8 +125,63 @@
       };
     });
 
+    function looseMatch(input, correct) {
+        const words = str =>
+            str.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[()[\\],.-]/g, '')
+            .split(/\s+/)
+            .filter(w => w.length > 2);
+
+        const inputWords = words(input);
+        const correctWords = words(correct);
+
+        const matchCount = inputWords.filter(w => correctWords.includes(w)).length;
+        return matchCount >= 2;
+    }
+
+    function isCloseMatch(input, correct) {
+        const normalize = str =>
+            str.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // odstrani šumnike
+            .replace(/[()\\[\\],.-]/g, '')                    // odstrani ločila
+            .replace(/\s+/g, ' ')                             // enojni presledki
+            .trim();
+
+        return normalize(input) === normalize(correct);
+    }
+
+    function levenshtein(a, b) {
+        const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
+            Array.from({ length: a.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+        );
+
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+            const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,     // delete
+                matrix[i][j - 1] + 1,     // insert
+                matrix[i - 1][j - 1] + cost // substitute
+            );
+            }
+        }
+
+        return matrix[b.length][a.length];
+    }
+
+    function isFuzzyMatch(input, correct) {
+        const normalize = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        const a = normalize(input);
+        const b = normalize(correct);
+        const distance = levenshtein(a, b);
+        const threshold = Math.max(2, Math.floor(b.length * 0.25)); // max 25% napak ali vsaj 2 črki
+        return distance <= threshold;
+    }
+
     function startQuiz() {
-      const mode = document.getElementById("mode").value;
+        const mode = document.getElementById("mode").value;
+        const useInput = document.getElementById("input-mode").value === "yes";
       let signs;
       if (mode === "pionirji") signs = allSigns.slice(0, 25);
       else if (mode === "mladinci") signs = allSigns.slice(0, 50);
@@ -123,7 +199,7 @@
       const quizDiv = document.getElementById("quiz");
       const shuffledQuestions = [...signs].sort(() => Math.random() - 0.5);
 
-      shuffledQuestions.forEach(({id, correct, options}, i) => {
+      shuffledQuestions.forEach(({ id, correct, options }, i) => {
         const div = document.createElement("div");
         div.className = "quiz-item";
 
@@ -135,37 +211,90 @@
         div.appendChild(document.createElement("br"));
         div.appendChild(img);
 
-        options.forEach(opt => {
-          const btn = document.createElement("button");
-          btn.textContent = opt;
-          btn.onclick = () => {
-            if (opt === correct) {
-              btn.classList.add("correct");
-              score++;
-              answered++;
-              btn.disabled = true;
-              [...btn.parentNode.querySelectorAll("button")].forEach(b => b.disabled = true);
-              if (answered === signs.length) {
-                document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
-              }
+        const isInput = (useInput && (mode === "mladinci" || mode === "pripravniki") && (i + 1) % 5 === 0);
+
+        if (isInput) {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = "Vpiši ime znaka";
+            input.style.marginBottom = "10px";
+            div.appendChild(input);
+
+            const submitBtn = document.createElement("button");
+            submitBtn.textContent = "Potrdi";
+            submitBtn.onclick = () => {
+            const userInput = input.value.trim();
+            submitBtn.disabled = true;
+            input.disabled = true;
+
+            if (
+                isCloseMatch(userInput, correct) ||
+                looseMatch(userInput, correct) ||
+                isFuzzyMatch(userInput, correct)
+            ) {
+                input.classList.add("correct");
+                score++;
+                answered++;
+                const correctAnswer = document.createElement("div");
+                correctAnswer.textContent = `Pravilen odgovor: ${correct}`;
+                correctAnswer.style.color = "green";
+                div.appendChild(correctAnswer);
             } else {
-              btn.classList.add("wrong");
-              btn.disabled = true;
-              [...btn.parentNode.querySelectorAll("button")].forEach(b => b.disabled = true);
-              setTimeout(() => {
-                const correctBtn = [...btn.parentNode.querySelectorAll("button")].find(b => b.textContent === correct);
-                if (correctBtn) correctBtn.classList.add("correct");
+                input.classList.add("wrong");
+                setTimeout(() => {
+                const correctAnswer = document.createElement("div");
+                correctAnswer.textContent = `Pravilen odgovor: ${correct}`;
+                correctAnswer.style.color = "green";
+                div.appendChild(correctAnswer);
                 answered++;
                 if (answered === signs.length) {
-                  document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
+                    document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
                 }
-              }, 5000);
+                }, 5000);
+                return;
             }
-          };
-          div.appendChild(btn);
-        });
+
+            if (answered === signs.length) {
+                document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
+            }
+            };
+
+            div.appendChild(submitBtn);
+        } else {
+            options.forEach(opt => {
+            const btn = document.createElement("button");
+            btn.textContent = opt;
+            btn.onclick = () => {
+                if (opt === correct) {
+                btn.classList.add("correct");
+                score++;
+                answered++;
+                btn.disabled = true;
+                [...btn.parentNode.querySelectorAll("button")].forEach(b => b.disabled = true);
+                if (answered === signs.length) {
+                    document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
+                }
+                } else {
+                btn.classList.add("wrong");
+                btn.disabled = true;
+                [...btn.parentNode.querySelectorAll("button")].forEach(b => b.disabled = true);
+                setTimeout(() => {
+                    const correctBtn = [...btn.parentNode.querySelectorAll("button")].find(b => b.textContent === correct);
+                    if (correctBtn) correctBtn.classList.add("correct");
+                    answered++;
+                    if (answered === signs.length) {
+                    document.getElementById("score").textContent = `Končni rezultat: ${score} / ${signs.length}`;
+                    }
+                }, 5000);
+                }
+            };
+            div.appendChild(btn);
+            });
+        }
+
         quizDiv.appendChild(div);
-      });
+        });
+
     }
   </script>
 </body>
