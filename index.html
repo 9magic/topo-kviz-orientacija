@@ -50,6 +50,7 @@
     }
   }
   </style>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="c811c92e-a76c-4887-8719-67da08ca29c3"></script>
 </head>
 <body>
     <h1>Kviz: Prepoznaj topografski znak</h1>
@@ -141,14 +142,22 @@
     }
 
     function isCloseMatch(input, correct) {
-        const normalize = str =>
-            str.toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // odstrani šumnike
-            .replace(/[()\\[\\],.-]/g, '')                    // odstrani ločila
-            .replace(/\s+/g, ' ')                             // enojni presledki
-            .trim();
+      const normalize = str =>
+        str.toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // odstrani šumnike
+          .replace(/[()[\],.-]/g, '')                       // odstrani ločila
+          .replace(/\s+/g, ' ')                             // normalizira presledke
+          .trim();
 
-        return normalize(input) === normalize(correct);
+      const inputNorm = normalize(input);
+      const correctNorm = normalize(correct);
+
+      // točno ujemanje
+      if (inputNorm === correctNorm) return true;
+
+      // preverimo vsako posamezno ime (če so ločena z vejicami)
+      const correctParts = correct.split(',').map(part => normalize(part));
+      return correctParts.some(part => inputNorm === part);
     }
 
     function levenshtein(a, b) {
